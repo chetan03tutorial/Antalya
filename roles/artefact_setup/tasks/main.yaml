@@ -1,0 +1,101 @@
+---
+
+  - name: Create the directory structure for the appliation
+    file: path={{item.value}} state=directory
+    with_dict: "{{directory_struct}}"
+
+  - name: Move the content of the previous to the temporary location
+    command: "mv {{directory_struct.previousDir}} {{directory_struct.tmpDir}}"
+
+  - name: Move the content of the current to previous
+    command: "mv {{directory_struct.currentDir}} {{directory_struct.previousDir}}"
+
+  - name: Recreates current directory
+    file:
+      path: "{{directory_struct.currentDir}}"
+      state: directory
+
+
+  - name: Download checksum
+    get_url:
+      url: "{{artifactory.baseURL}}/{{artifactory.projectRoot}}/{{artifactory.groupId}}/{{artifactory.artifactId}}/{{artifactory.version}}/{{artifactory.artifactId}}-{{artifactory.version}}.{{artifactory.extension}}.{{checksum_algo}}"
+      dest: "{{directory_struct.tmpDir}}/{{app_name}}.{{artifactory.extension}}.{{checksum_algo}}"
+      validate_certs: "{{validate_certificates}}"
+      mode: 0777
+
+  - name: Read checksum
+    slurp:
+      src: "{{directory_struct.tmpDir}}/{{app_name}}.{{artifactory.extension}}.{{checksum_algo}}"
+    register: fileContent
+
+  - name: Decoding the content from base 64 to normal text
+    set_fact:
+      checksum: "{{ fileContent.content | b64decode }}"
+
+  - debug:
+      var: checksum
+
+  - name: Download Application Artifect
+    get_url:
+      url: "{{artifactory.baseURL}}/{{artifactory.projectRoot}}/{{artifactory.groupId}}/{{artifactory.artifactId}}/{{artifactory.version}}/{{artifactory.artifactId}}-{{artifactory.version}}.{{artifactory.extension}}"
+      dest: "{{directory_struct.tmpDir}}/{{app_name}}.{{artifactory.extension}}"
+      validate_certs: "{{validate_certificates}}"
+      checksum: "{{checksum_algo}}:{{checksum}}"
+      mode: 0777
+
+
+  - name: Extract Application Zip
+    unarchive:
+      src: "{{directory_struct.tmpDir}}/{{app_name}}.{{artifactory.extension}}"
+      dest: "{{directory_struct.tmpDir}}"
+      remote_src: yes
+      mode: 0777
+
+  - name: Extract Modules in the temporary directory
+    unarchive:
+      src: "{{directory_struct.tmpDir}}/{{item}}.{{artifactory.extension}}"
+      dest: "{{directory_struct.tmpDir}}"
+      remote_src: yes
+      mode: 0777
+    with_items:
+      - "{{app_modules}}"
+
+  - name: Copy the application code in application component directory
+    synchronize:
+      src: "{{directory_struct.tmpDir}}/{{item}}-{{artifactory.version}}/{{codebase_dir}}/"
+      dest: "{{directory_struct.app_components}}/{{item}}/"
+    delegate_to: "{{host}}"
+    with_items:
+      - "{{app_modules}}"
+
+  - name: Copy database scripts in database component directory
+    synchronize:
+      src: "{{directory_struct.tmpDir}}/{{item}}-{{artifactory.version}}/{{db_dir}}/"
+      dest: "{{directory_struct.db_components}}/{{item.db_comp}}/"
+    delegate_to: "{{host}}"
+    when: (app_name | upper != "CE")
+    with_items:
+      - "{{dbuser_dbcomp_mapping}}"
+
+  - name: Print the db directories
+    debug:
+      var: item.db_comp
+    with_items:
+      - "{{dbuser_dbcomp_mapping}}"
+    when: (app_name | upper == "CE" )
+
+
+  - name: Copy database scripts in database component directory
+    synchronize:
+      src: "{{directory_struct.tmpDir}}/ce-common-{{artifactory.version}}/{{db_dir}}/{{item.db_comp}}/"
+      dest: "{{directory_struct.db_components}}/{{item.db_comp}}/"
+    delegate_to: "{{host}}"
+    with_items:
+      - "{{dbuser_dbcomp_mapping}}"
+    when: (app_name | upper == "CE" )
+
+
+  - name: Clean the previous directory in temp after sucessfull copying
+    file:
+      path: "{{directory_struct.tmpDir}}/previous"
+      state: absent

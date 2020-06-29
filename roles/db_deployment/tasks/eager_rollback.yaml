@@ -1,0 +1,79 @@
+---
+
+  - name: Check if any sql was executed
+    stat:
+      path: "{{directory_struct.db_components}}/{{db_item.base_dir}}/executed_sqls"
+    register: executed_sql_status
+
+  - debug:
+      var: executed_sql_status
+
+  - name: Some SQLs were executed here, now rolling back
+    block:
+
+      - name: fetch the files from the target machines
+        fetch:
+          src: "{{directory_struct.db_components}}/{{db_item.base_dir}}/{{item}}"
+          dest: "/tmp/{{app_name}}/{{inventory_hostname}}/{{db_item.base_dir}}/{{item}}"
+          flat: true
+        with_items:
+          - "{{rollbackMapping}}"
+          - "{{rollbackSqlConfigLocation}}"
+          - executed_sqls
+
+      - name: set variable Executed SQLs
+        set_fact:
+          executed_sql_scripts: "{{ lookup('file', '/tmp/{{app_name}}/{{inventory_hostname}}/{{db_item.base_dir}}/executed_sqls').splitlines() }}"
+
+      - name: Print the executed SQLs
+        debug:
+          var: executed_sql_scripts
+
+      - name: Look up the rollback scripts for the executed SQLs
+        set_fact:
+          rollback_scripts: "{{rollback_scripts|default([]) + [ lookup('ini', '{{executed_script}} type=properties file=/tmp/{{app_name}}/{{inventory_hostname}}/{{db_item.base_dir}}/rollback_mapping.ini default=DUMMY_SCRIPT_ROLLBACK') ] }}"
+        with_items: "{{executed_sql_scripts}}"
+        loop_control:
+          loop_var: executed_script
+
+      - debug:
+          var: rollback_scripts
+
+      - name: Log the sql status in the DB log file
+        include_role:
+          name: log_line
+        vars:
+          log_status: "Rollback Script is missing"
+        when: '"DUMMY_SCRIPT_ROLLBACK" in rollback_scripts'
+
+      - name: Fail the deployment when rollback_script is not found
+        fail:
+          msg: "Deployment Failure, Rollback script missing"
+        when: '"DUMMY_SCRIPT_ROLLBACK" in rollback_scripts'
+
+      - name: Executing the rollback scripts
+        environment:
+          ORACLE_HOME: "{{ ORACLE_HOME }}"
+          PATH: "{{ PATH }}"
+          LD_LIBRARY_PATH: "{{ LD_LIBRARY_PATH }}"
+        shell: "{{ PATH }}/sqlplus -s {{db_item.user}}/'{{db_schema[db_item.user].password}}'@{{db_host}}:{{db_port}}/{{db_service}} @{{rollback_script}}"
+        with_items:
+          - "{{rollback_scripts}}"
+        loop_control:
+          loop_var: rollback_script
+        register: rollback_status
+
+      - name: Print the status of the rollback
+        debug:
+          var: rollback_status.results
+
+      - name: Log the sql status in the DB log file
+        include_role:
+          name: log_line
+        vars:
+          log_status: "{{rollback_status}}"
+
+
+    when: (executed_sql_status.stat.exists | upper == "TRUE" )
+
+

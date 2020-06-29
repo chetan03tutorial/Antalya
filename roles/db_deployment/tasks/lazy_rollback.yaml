@@ -1,0 +1,10 @@
+---
+
+  - name: Preparing to execute the rollback SQL scripts
+    include_role:
+      name: db_deployment
+      tasks_from: do_run_sql.yaml
+    with_items: "{{ lookup('file', '/tmp/{{app_name}}/{{inventory_hostname}}/{{db_item.base_dir}}/{{rollbackSqlConfigLocation}}').splitlines() }}"
+    loop_control:
+      loop_var: sql
+

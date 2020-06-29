@@ -1,0 +1,6 @@
+---
+  artifactory_url: "{{ lookup('ini','oracle_artifactory_url section={{deploy_env}} type=ini file=/opt/app/ce/configuration/oracle_conf/config_lookup.ini') }}"
+  source_file: "{{ lookup('ini','oracle_source_file section={{deploy_env}} type=ini file=/opt/app/ce/configuration/oracle_conf/config_lookup.ini') }}"
+  build_dir: "{{ lookup('ini','oracle_build_dir section={{deploy_env}} type=ini file=/opt/app/ce/configuration/oracle_conf/config_lookup.ini') }}"
+  dest_dir: "{{ lookup('ini','oracle_dest_dir section={{deploy_env}} type=ini file=/opt/app/ce/configuration/oracle_conf/config_lookup.ini') }}"
+  oracle_home: "{{dest_dir | regex_replace('\\/$', '') }}"

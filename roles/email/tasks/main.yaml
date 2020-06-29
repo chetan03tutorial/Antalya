@@ -1,0 +1,17 @@
+---
+
+  - name: Sending the email
+    mail:
+      host: smtp.gmail.com
+      port: 587
+      username: username@gmail.com
+      password: mysecret
+      to: Chetan Sharma <sharcbd@rbos.co.uk>, <#RFSAREDevelopmentTeam@rbsres01.net>
+      subject: Deployment Status
+      body: Deployment Status examples are https://www.infinitypp.com/ansible/email-notifications-with-examples/
+      attach: "{{directory_struct.logDirectory}}/db.log" ~/Ansible/logs/ansible.log
+    delegate_to: localhost
+
+
+
+

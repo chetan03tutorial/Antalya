@@ -1,0 +1,20 @@
+---
+  - name: Fetch the file from the remote machine
+    fetch:
+      src: "{{directory_struct.db_components}}/{{db_item.base_dir}}/{{item}}"
+      dest: "/tmp/{{app_name}}/{{inventory_hostname}}/{{db_item.base_dir}}/{{item}}"
+      flat: true
+    with_items:
+      - "{{sqlConfigLocations}}"
+      - "{{rollbackMapping}}"
+      - "{{rollbackSqlConfigLocation}}"
+
+  - include_role:
+      name: token_replacement
+    vars:
+      file_path: "{{file_containing_script_paths}}"
+    with_items:
+      - "{{ lookup('file', '/tmp/{{app_name}}/{{inventory_hostname}}/{{db_item.base_dir}}/{{sqlConfigLocations}}').splitlines() }}"
+      - "{{ lookup('file', '/tmp/{{app_name}}/{{inventory_hostname}}/{{db_item.base_dir}}/{{rollbackSqlConfigLocation}}').splitlines() }}"
+    loop_control:
+      loop_var: file_containing_script_paths

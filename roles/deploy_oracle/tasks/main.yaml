@@ -1,0 +1,55 @@
+---
+    - name: Ensures {{build_dir}} directory exists
+      tags:
+        - create_build_dir
+      file:
+        path: "{{build_dir}}"
+        state: directory
+        mode: u+rwx,g+rwx,o+r
+
+    - name: Ensures {{dest_dir}} directory exists
+      tags:
+        - create_dest_dir
+      file:
+        path: "{{dest_dir}}"
+        state: directory
+        mode: u+rwx,g+rwx,o+r
+
+
+    - name: copy oracle client
+      tags:
+        - copy_to_oracle_home
+      synchronize:
+        src: "{{build_dir}}/client64/"
+        dest: "{{dest_dir}}/"
+        recursive: yes
+
+    - name: Set Oracle HOME
+      tags:
+        - set_oracle_home
+      lineinfile:
+        dest: ~/.bashrc
+        line: 'ORACLE_HOME="{{oracle_home}}" PATH=$PATH:$ORACLE_HOME/bin'
+        insertafter: 'EOF'
+        state: present
+
+    - name: Set Library Path
+      tags:
+        - set_ld_lib_path
+      lineinfile:
+        dest: ~/.bashrc
+        line: 'LD_LIBRARY_PATH=$ORACLE_HOME/lib'
+        insertafter: 'EOF'
+        state: present
+
+    - name: Set TNS Admin
+      tags:
+        - set_tns_admin
+      lineinfile:
+        dest: ~/.bashrc
+        line: 'TNS_ADMIN=$ORACLE_HOME/lib/network/admin'
+        insertafter: 'EOF'
+        state: present
+
+    - name: Load library path and oracle home
+      shell: export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORACLE_HOME/lib:$ORACLE_HOME

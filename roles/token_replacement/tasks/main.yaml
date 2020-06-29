@@ -1,0 +1,69 @@
+---
+  - debug:
+      var: file_path
+
+  # - name: Copy application configuration files to the target system
+  # copy:
+  # src: /home/LDC/ansible-inventory-check/conf/{{file}}
+  # dest: /home/LDC/app/conf/{{file}}
+
+  #- name: Reading the file contents on the target machines to a variable
+  #  slurp:
+  #    src: /home/LDC/app/conf/{{file}}
+  #  register: fileContent
+
+  #- name: Decoding the content from base 64 to normal text
+  #  set_fact:
+  #    fileString: "{{ fileContent.content | b64decode }}"
+
+  - name: Fetch the configuration files from target to host
+    fetch:
+      src: "{{file_path}}"
+      dest: "/tmp/{{app_name}}/{{inventory_hostname}}/{{file_path}}"
+      flat: true
+
+  - debug:
+      msg="{{lookup('file', '/tmp/{{app_name}}/{{inventory_hostname}}/{{file_path}}')}}"
+    register: fileContent
+
+  - name: Storing the content of the file
+    set_fact:
+      fileString: "{{fileContent.msg}}"
+
+  - name: Find the tokens (@----@) in the fileString
+    set_fact:
+      tokens: "{{ fileString | regex_findall(regexp)}}"
+    vars:
+      regexp: '(?<=\@)(.*?)(?=\@)'
+
+
+  - name: Fetch the environment specific properties
+    fetch:
+      src: "{{directory_struct.app_components}}/{{param_relative_path}}/{{cloud_name}}{{host}}.properties"
+      dest: "/tmp/{{app_name}}/{{cloud_name}}{{host}}.properties"
+      flat: true
+    #when: (override_app_param | upper == "N")
+    #with_items:
+      #- "{{param_relative_path}}"
+
+  #- name: Use the parameter files provided at the runtime the environment specific properties
+    #copy:
+      #src: "{{app_params}}"
+      #dest: "/tmp/{{app_name}}/{{cloud_name}}{{host}}.properties"
+    #delegate_to: localhost
+    #when: (override_app_param | upper == "Y")
+
+  - name: Replace the token in the configuration files
+    replace:
+      path: "{{file_path}}"
+      regexp: '@{{token}}@'
+      replace: "{{ lookup('ini', '{{token}} type=properties file=/tmp/{{app_name}}/{{cloud_name}}{{host}}.properties default=@{{token}}@')}}"
+    with_items: "{{tokens}}"
+    loop_control:
+      loop_var: token
+
+
+
+
+
+

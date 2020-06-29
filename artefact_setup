@@ -1,0 +1,11 @@
+
+  - name: Play to set up the artifact
+    hosts: "{{host}}"
+
+    tasks:
+      - name: Handling the directory set up for the application deployment
+        block:
+          - include_role:
+              name: artifact_setup
+              tasks_from: setup_artefact.yaml
+        when: deployable_choice == "A" or deployable_choice == "B" or deployable_choice == "D"

@@ -1,0 +1,60 @@
+---
+
+  - name: Play to replace tokens and execute SQL scripts
+    hosts: "{{env}}"
+    vars:
+      sqlConfigLocations: sqlConfigLocations.sql
+      rollbackSqlConfigLocation: rollbackSqlConfigLocation.sql
+      rollbackMapping: rollback_mapping.ini
+      log_file: "{{directory_struct.logDirectory}}/db.log"
+
+    tasks:
+
+      - set_fact:
+          db_release_tags: "{{db_release_tags|default([]) + [{ 'base_dir': lookup('ini', 'base_dir section={{db_item.user}} file=~/db_release.ini'),
+                                       'user' : db_item.user,
+                                       'release_version' : lookup('ini', 'release_version section={{db_item.user}} file=~/db_release.ini') ,
+                                       'component_xml_file_location' : lookup('ini', 'component_xml_file_location section={{db_item.user}} file=~/db_release.ini') }] }}"
+        with_items:
+          - "{{dbuser_dbcomp_mapping}}"
+        loop_control:
+          loop_var: db_item
+
+      - debug :
+          var: db_release_tags
+
+
+      - name: create DB log file
+        file:
+          path: "{{log_file}}"
+          state: touch
+
+
+      - include_role:
+          name: db_deployment
+          tasks_from: lazy_rollback_execution.yaml
+        with_items:
+          - "{{db_release_tags}}"
+        loop_control:
+          loop_var: db_item
+        when: db_item.release_version|length > 0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,54 @@
+  - name: write the script at the beginning of the file
+    lineinfile:
+      path: "{{directory_struct.db_components}}/{{db_item.base_dir}}/executed_sqls"
+      insertbefore: BOF
+      line: "{{sql}}"
+      create: yes
+      state: present
+
+  - debug:
+      msg: "Executing the script : {{sql}}"
+
+
+  - name: Executing SQL scripts
+    environment:
+      ORACLE_HOME: "{{ ORACLE_HOME }}"
+      PATH: "{{ PATH }}"
+      LD_LIBRARY_PATH: "{{ LD_LIBRARY_PATH }}"
+    shell: "{{PATH}}/sqlplus -s {{db_item.user}}/'{{db_schema[db_item.user].password}}'@{{db_host}}:{{db_port}}/{{db_service}} @{{sql}}"
+    register: sqlout
+
+  - name: Status of the sql scripts
+    debug:
+      msg: "{{sqlout}}"
+
+  - name: Log the sql status in the DB log file
+    include_role:
+      name: log_line
+    vars:
+      log_status: "{{sqlout}}"
+
+  - block :
+
+      - name: Check if an error occured in executing the sql script
+        debug:
+          msg: "An error has occured in executing the sql script {{sql}}, error message = {{sqlout.stdout}}"
+
+      - name: Set the db execution error flag
+        set_fact:
+          db_execution_status: ERROR
+
+    when: sqlout.stdout | search("ERROR")
+
+  #- name: Attempt and graceful roll back demo
+    #block:
+      #- debug:
+          #msg: 'I execute normally'
+        #changed_when: yes
+        #notify: run me even after an error
+      #- command: echo "hello world"
+      #- command: /bin/false
+    #rescue:
+      #- name: make sure all handlers run
+        #meta: flush_handlers
+

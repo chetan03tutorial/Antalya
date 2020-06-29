@@ -1,0 +1,19 @@
+---
+
+  - name: Preparing to execute SQL scripts
+    include_role:
+      name: db_deployment
+      tasks_from: do_run_sql.yaml
+    with_items: "{{ lookup('file', '/tmp/{{app_name}}/{{inventory_hostname}}/{{db_item.base_dir}}/{{sqlConfigLocations}}').splitlines() }}"
+    loop_control:
+      loop_var: sql
+
+  #- name: Commit Task
+  #  environment:
+  #    ORACLE_HOME: "{{ ORACLE_HOME }}"
+  #    PATH: "{{ PATH }}"
+  #    LD_LIBRARY_PATH: "{{ LD_LIBRARY_PATH }}"
+  #  shell:  "{{ PATH }}/sqlplus -s CE/'TokyO#lympics2020!'@devecpvm009121.server.rbsgrp.net:1824/DOGB1225 @/root/commit.sql"
+  #  with_items:
+  #    - "{{db_schema}}"
+

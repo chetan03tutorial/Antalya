@@ -1,0 +1,62 @@
+---
+
+  - name: Play to replace tokens and execute SQL scripts
+    hosts: "{{host}}"
+    vars:
+      sqlConfigLocations: sqlConfigLocations.sql
+      rollbackSqlConfigLocation: rollbackSqlConfigLocation.sql
+      rollbackMapping: rollback_mapping.ini
+      log_file: "{{directory_struct.logDirectory}}/db.log"
+      db_execution_status: SUCCESS
+
+    tasks:
+
+      - set_fact:
+          db_release_tags: "{{db_release_tags|default([]) + [{ 'base_dir': lookup('ini', 'base_dir section={{db_item.user}} file=~/db_release.ini'),
+                                       'user' : db_item.user,
+                                       'release_version' : lookup('ini', 'release_version section={{db_item.user}} file=~/db_release.ini') ,
+                                       'component_xml_file_location' : lookup('ini', 'component_xml_file_location section={{db_item.user}} file=~/db_release.ini') }] }}"
+        with_items:
+          - "{{dbuser_dbcomp_mapping}}"
+        loop_control:
+          loop_var: db_item
+
+      - debug :
+          var: db_release_tags
+
+
+      - name: create DB log file
+        file:
+          path: "{{log_file}}"
+          state: touch
+
+      - name: Handling the DB Deployment
+        block:
+          - debug:
+              msg: Skipping Database deployment
+        when: not (deployable_choice == "D" or deployable_choice == "B")
+
+
+      - name: Handle DB Deployment
+        block:
+
+          - include_role:
+              name: db_deployment
+              tasks_from: execute_db_scripts.yaml
+            #vars:
+              #execution_status : "{{db_execution_status}}"
+            with_items:
+              - "{{db_release_tags}}"
+            loop_control:
+              loop_var: db_item
+            when: db_item.release_version|length > 0
+
+          - debug:
+              var: db_execution_status
+
+          - name: Failing the executing of the deployment
+            fail:
+              msg: "Stopping the execution of the deployment due to error in executing the sql scripts, check log file on the host machine"
+            when: db_execution_status is defined and db_execution_status == "ERROR"
+
+        when: deployable_choice == "D" or deployable_choice == "B"

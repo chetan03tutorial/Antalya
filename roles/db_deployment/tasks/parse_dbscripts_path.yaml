@@ -1,0 +1,125 @@
+---
+
+  - set_fact:
+      _xpath : "/component/releases/release[@version='{{db_item.release_version}}']/scripts/script"
+    when: full_db_deploy == "N"
+
+  - set_fact:
+      _xpath: "/component/releases/release/scripts/script"
+    when: full_db_deploy == "Y"
+
+
+  - debug:
+      var: ORACLE_HOME
+
+  - debug:
+      var: LD_LIBRARY_PATH
+
+  - debug:
+      var: PATH
+
+  - name: Create files sqlConfigLocation, rollbackSqlConfigLocation and rollbackMapping which capture sql script paths
+    file:
+      path: "{{directory_struct.db_components}}/{{db_item.base_dir}}/{{item}}"
+      state: touch
+    with_items:
+      - "{{rollbackMapping}}"
+      - "{{rollbackSqlConfigLocation}}"
+      - "{{sqlConfigLocations}}"
+
+  - name: Parse Component.xml file to locate the sql scripts
+    xml:
+      path: "{{directory_struct.db_components}}/{{db_item.base_dir}}/{{db_item.component_xml_file_location}}"
+      xpath: "{{_xpath}}"
+      content: attribute
+      #attribute: path
+    register: nodes
+
+
+  - name: Write sql script location in sqlConfigLocations
+    lineinfile:
+      path: "{{directory_struct.db_components}}/{{db_item.base_dir}}/{{sqlConfigLocations}}"
+      line: "{{directory_struct.db_components}}/{{db_item.base_dir}}/{{item.script.path}}"
+      create: yes
+      state: present
+    when: item.script.path is defined
+    with_items:
+      - "{{nodes.matches}}"
+
+  - name: Write rollback script location in rollbackSqlConfigLocation
+    lineinfile:
+      path: "{{directory_struct.db_components}}/{{db_item.base_dir}}/{{rollbackSqlConfigLocation}}"
+      line: "{{directory_struct.db_components}}/{{db_item.base_dir}}/{{item.script.rollback}}"
+      create: yes
+      state: present
+    when: item.script.rollback is defined
+    with_items:
+      - "{{nodes.matches}}"
+
+  - name: Write rollback mapping file
+    lineinfile:
+      path: "{{directory_struct.db_components}}/{{db_item.base_dir}}/{{rollbackMapping}}"
+      line: "{{directory_struct.db_components}}/{{db_item.base_dir}}/{{item.script.path}} = {{directory_struct.db_components}}/{{db_item.base_dir}}/{{item.script.rollback}}"
+      create: yes
+      state: present
+    when: item.script.rollback is defined and item.script.path is defined
+    with_items:
+      - "{{nodes.matches}}"
+
+  #- block:
+
+      #- debug:
+          #msg: "Parsing database scripts for version :- {{db_item.release_version}}"
+        #when: db_item.release_version|length > 0
+
+      #- name:  Parse component.xml file to locate the sql scripts for a release
+        #include_role:
+          #name: db_deployment
+          #tasks_from: parse_db_script_path.yaml
+        #vars:
+          #_xpath: "/component/releases/release[@version='{{db_item.release_version}}']/scripts/script"
+
+    #when: full_db_deploy == "N" and db_item.release_version|length>0
+
+  #- block:
+
+      #- debug:
+          #msg: Parsing component.xml to parse all the sql scripts
+
+      #- name: Parse sql script locations
+        #include_role:
+          #name: db_deployment
+          #tasks_from: parse_db_script_path.yaml
+        #vars:
+          #_xpath: "/component/releases/release/scripts/script"
+
+    #when: full_db_deploy == "Y"
+
+
+  #- name: Modify the sql file for sql scripts
+    #replace:
+      #path: "{{directory_struct.db_components}}/{{db_item.db_comp}}/{{item}}"
+      #regexp: '\n'
+      #replace: ";\n"
+    #with_items:
+      #- "{{sqlConfigLocations}}"
+      #- "{{rollbackSqlConfigLocation}}"
+
+
+  #- set_fact:
+  #db_base_dir: "{{ lookup('ini', 'base_dir section={{db_item.user}} file={{userhome}}/db_release.ini') }}"
+  #release_version: "{{ lookup('ini', 'release_version section={{db_item.user}} file={{userhome}}/db_release.ini') }}"
+  #component_file_location: "{{ lookup('ini', 'component_xml_file_location section={{db_item.user}} file={{userhome}}/db_release.ini') }}"
+
+  #- set_fact:
+  #db_components: "{{ db_components | combine( { item: lookup('ini', '{{item}} section={{db_item.user}} file={{userhome}}/db_release.ini') } ) }}"
+  #with_items:
+  #- base_dir
+  #- release_version
+  #- component_xml_file_location
+
+
+
+
+
+

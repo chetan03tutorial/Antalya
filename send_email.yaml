@@ -1,0 +1,11 @@
+
+  - name: Play to set up the artifact
+    hosts: "{{host}}"
+
+    tasks:
+      - name: Sending the email to DL
+        block:
+          - include_role:
+              name: email
+              tasks_from: send_notification.yaml
+        when: deployable_choice == "A" or deployable_choice == "B" or deployable_choice == "D"

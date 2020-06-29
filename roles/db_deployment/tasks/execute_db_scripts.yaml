@@ -1,0 +1,20 @@
+---
+  - include_role:
+      name: db_deployment
+      tasks_from: parse_dbscripts_path.yaml
+
+  - include_role:
+      name: db_deployment
+      tasks_from: sql_token_replacement.yaml
+
+  - include_role:
+      name: db_deployment
+      tasks_from: run_sql.yaml
+
+  - debug:
+      var: db_execution_status
+
+  - include_role:
+      name: db_deployment
+      tasks_from: eager_rollback.yaml
+    when: db_execution_status is defined and db_execution_status == "ERROR"

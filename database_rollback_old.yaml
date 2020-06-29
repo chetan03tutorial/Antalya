@@ -1,0 +1,21 @@
+---
+
+  - name: Play to rollback the database deployment
+    hosts: "{{env}}"
+    vars:
+      sqlConfigLocations: sqlConfigLocations.sql
+      rollbackSqlConfigLocation: rollbackSqlConfigLocation.sql
+      rollbackMapping: rollback_mapping.ini
+      log_file: "{{directory_struct.logDirectory}}/db.log"
+
+
+    tasks:
+
+      - include_role:
+          name: db_deployment
+          tasks_from: rollback_sql.yaml
+        with_items:
+          - "{{dbuser_dbcomp_mapping}}"
+        loop_control:
+          loop_var: db_item
+        when: db_execution_status is defined and db_execution_status == "ERROR"

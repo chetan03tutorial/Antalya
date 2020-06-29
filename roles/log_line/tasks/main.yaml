@@ -1,0 +1,7 @@
+---
+  - name: Log db status
+    lineinfile:
+      path: "{{log_file}}"
+      line: "{{log_status}} \n"
+      create: yes
+      state: present

@@ -1,0 +1,106 @@
+---
+
+  - name: Deploying the application code
+    block:
+
+      - debug:
+          var: xmlConfigLocations
+
+      - name: Create a file which contains list of all the xml location
+        file:
+          path: "{{directory_struct.tmpDir}}/{{item}}"
+          state: touch
+        with_items:
+          - "{{xmlConfigLocations}}"
+
+      - name: Parse Component.xml file to fetch all the xml config locations
+        xml:
+          path: "{{directory_struct.app_components}}/{{item}}/_arm/component.xml"
+          xpath: /component/config/file
+          content: attribute
+          attribute: path
+        register: locations_of_config_xmls
+        with_items:
+          - "{{app_modules}}"
+
+      - name: Printing the matched result
+        debug:
+          var: locations_of_config_xmls
+
+      - name: Write xml-config-locations/path in "{{xmlConfigLocations}}"
+        lineinfile:
+          path: "{{directory_struct.tmpDir}}/{{xmlConfigLocations}}"
+          line: "{{directory_struct.app_components}}/{{item.0.item}}/{{item.1.file.path}}"
+          create: yes
+          state: present
+        with_subelements:
+          - "{{locations_of_config_xmls.results}}"
+          - matches
+
+
+      - name: Fetch the file from the remote machine
+        fetch:
+          src: "{{directory_struct.tmpDir}}/{{xmlConfigLocations}}"
+          dest: "/tmp/{{app_name}}/{{inventory_hostname}}/{{xmlConfigLocations}}"
+          flat: true
+
+      - include_role:
+          name: token_replacement
+        vars:
+          file_path: "{{file_containing_script_paths}}"
+        with_items:
+          - "{{ lookup('file', '/tmp/{{app_name}}/{{inventory_hostname}}/{{xmlConfigLocations}}').splitlines() }}"
+        loop_control:
+          loop_var: file_containing_script_paths
+
+      - name: Copy the content of extracted files in current directory
+        synchronize:
+          src: "{{directory_struct.app_components}}/{{item}}/"
+          dest: "{{directory_struct.currentDir}}/"
+        delegate_to: "{{host}}"
+        with_items:
+          - "{{app_modules}}"
+
+      #- name: Create a symlink which points to current directory
+        #file:
+          #src: "{{directory_struct.currentDir}}"
+          #path: "opt/app/ce"
+          #state: link
+
+    rescue:
+
+      - name: Rolling back the Database deployment
+        include_role:
+          name: db_deployment
+          tasks_from: rollback_sql.yaml
+        with_items:
+          - "{{dbuser_dbcomp_mapping}}"
+        loop_control:
+          loop_var: db_item
+        vars:
+          sqlConfigLocations: sqlConfigLocations.sql
+          rollbackSqlConfigLocation: rollbackSqlConfigLocation.sql
+          rollbackMapping: rollback_mapping.ini
+          log_file: "{{directory_struct.logDirectory}}/db.log"
+
+      #- name: Create a symlink which points to previous directory
+        #file:
+          #src: "{{directory_struct.previousDir}}"
+          #dest: "opt/app/ce"
+          #state: link
+          
+
+      - name: Clean the current application directory in the target machine
+        file:
+          path: "{{directory_struct.currentDir}}"
+          state: absent
+
+      - name: Recreates current directory
+        file:
+          path: "{{directory_struct.currentDir}}"
+          state: directory
+      - name: Rolling back the application deployment
+        synchronize:
+          src: "{{directory_struct.previousDir}}/"
+          dest: "{{directory_struct.currentDir}}/"
+        delegate_to: "{{host}}"

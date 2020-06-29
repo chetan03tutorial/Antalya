@@ -1,0 +1,5 @@
+---
+
+  - name: run me even after an error
+    debug:
+      msg: 'This handler runs even on error'

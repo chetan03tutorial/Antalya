@@ -1,0 +1,17 @@
+---
+  #artifactory_url: "{{ lookup('ini','oracle_artifactory_url section=dev type=ini file=/opt/app/ce/configuration/oracle_conf/config_lookup.ini') }}"
+  #source_file: "{{ lookup('ini','oracle_source_file section=dev type=ini file=/opt/app/ce/configuration/oracle_conf/config_lookup.ini') }}"
+  #build_dir: "{{ lookup('ini','oracle_build_dir section=dev type=ini file=/opt/app/ce/configuration/oracle_conf/config_lookup.ini') }}"
+  #dest_dir: "{{ lookup('ini','oracle_dest_dir section=dev type=ini file=/opt/app/ce/configuration/oracle_conf/config_lookup.ini') }}"
+  #oracle_home: "{{dest_dir | regex_replace('\\/$', '') }}"
+  #ORACLE_HOME: /opt/app/ce/oracle/18.3/client64
+  #PATH: /opt/app/ce/oracle/18.3/client64/bin
+  #LD_LIBRARY_PATH: /opt/app/ce/oracle/18.3/client64/lib
+
+  #ORACLE_HOME: "{{lookup('env','ORACLE_HOME')}}/bin"
+  #ORACLE_HOME: /usr/lib/oracle/19.3/client64/bin
+  #LD_LIBRARY_PATH: "{{lookup('env','LD_LIBRARY_PATH')}}"
+  #PATH: "{{lookup('env','PATH')}}"
+  ORACLE_HOME: /opt/app/ce/oracle/18.3/client64
+  PATH: /opt/app/ce/oracle/18.3/client64/bin
+  LD_LIBRARY_PATH: /opt/app/ce/oracle/18.3/client64/lib

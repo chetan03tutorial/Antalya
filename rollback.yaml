@@ -1,0 +1,48 @@
+---
+
+  - name: Install CE Application
+    hosts: "{{env}}"
+    vars_prompt:
+
+      - name: deployable_choice
+        prompt: "Enter A(application)/D(database)/B(Both) for Application/Database/Full Rollback"
+        when: full_db_deploy is defined
+
+    tasks:
+
+      - name: Create the directory structure for the appliation
+        file:
+          path: "{{item.value}}"
+          state: directory
+        with_dict: "{{directory_struct}}"
+
+      - set_fact:
+          deployable_choice: "{{deployable_choice}}"
+        when: full_db_deploy is defined
+
+      - set_fact:
+          deployable_choice: "B"
+          full_db_deploy: "N"
+        when: full_db_deploy is not defined
+
+      - debug:
+          var: deployable_choice
+
+      - debug:
+          msg: "Rollingback the full deployment ?? {{full_db_deploy}}"
+
+  - name: Run playbook to set up the project structure and explode the directories
+    import_playbook: artefact_setup.yaml
+
+  - name: Run playbook to run the rollback scripts of the specified version
+    import_playbook: database_rollback.yaml
+
+  #- name: Run playbook to deploy the application
+    #import_playbook: application_deployment.yaml
+
+  - name: Run playbook to run the SQL scripts
+    import_playbook: cleanup.yaml
+
+
+
+

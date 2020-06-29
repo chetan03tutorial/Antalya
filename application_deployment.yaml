@@ -1,0 +1,19 @@
+---
+  - name: Play to deploy the application code
+    hosts: "{{host}}"
+    vars:
+      xmlConfigLocations: xmlConfigLocations
+    tasks:
+      - name: Handling the application deployment
+        block:
+          - debug:
+              msg: Skip application deployment based on the admin decision
+        when: not ( deployable_choice == "A" or deployable_choice == "B" )
+
+      - name: Handling the application deployment
+        block:
+          - include_role:
+              name: app_deployment
+              tasks_from: deploy_application.yaml
+        when: deployable_choice == "A" or deployable_choice == "B"
+

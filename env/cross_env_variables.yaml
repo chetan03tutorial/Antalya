@@ -1,0 +1,54 @@
+---
+  validate_certificates: no
+  app_name: ce
+  cloud_name: ecp
+  userhome: "{{ansible_env.HOME}}"
+  checksum_algo: md5
+
+  db_components_dir: db_components
+  app_components_dir: app_components
+  codebase_dir: merace_core
+  db_dir: db_components
+
+  app_params : "{{app_param}}"
+  param_relative_path: ce-common/etc/profiles
+
+  app_modules:
+    - mera-vat
+    - mera-ccn
+    - mera-common
+
+  dbuser_dbcomp_mapping:
+    - user: merace
+      db_comp: merace
+    - user: meraceapp
+      db_comp : meraceapp
+    - user: meracesupport
+      db_comp : meracesupport
+
+
+  app_conf:
+    app_name: "{{app_name}}"
+    app_home_dir: "{{app_name}}-server"
+    app_current_version: current
+    app_previous_version: previous
+    log_dir: log
+
+
+  directory_struct:
+    currentDir: "{{userhome}}/{{app_conf.app_home_dir}}/{{app_conf.app_current_version}}"
+    previousDir: "{{userhome}}/{{app_conf.app_home_dir}}/{{app_conf.app_previous_version}}"
+    logDirectory: "{{userhome}}/{{app_conf.app_home_dir}}/{{app_conf.log_dir}}"
+    tmpDir: "{{userhome}}/workdir/{{app_name}}"
+    workDir: "{{userhome}}/workdir/{{app_name}}/code_dir"
+    db_components: "{{userhome}}/workdir/{{app_name}}/{{db_components_dir}}"
+    app_components: "{{userhome}}/workdir/{{app_name}}/{{app_components_dir}}"
+
+  artifactory:
+    baseURL: some_path
+    projectRoot: some_root
+    groupId: groupId
+    artifactId: artifactId
+    version: "{{version}}"
+    extension: zip
+

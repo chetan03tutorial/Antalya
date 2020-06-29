@@ -1,0 +1,16 @@
+---
+  - include_role:
+      name: db_deployment
+      tasks_from: parse_dbscripts_path.yaml
+
+  - include_role:
+      name: db_deployment
+      tasks_from: sql_token_replacement.yaml
+
+  - include_role:
+      name: db_deployment
+      tasks_from: lazy_rollback.yaml
+
+  - debug:
+      var: db_execution_status
+

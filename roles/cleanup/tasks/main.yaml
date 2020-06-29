@@ -1,0 +1,14 @@
+---
+
+  - name: Clean the temporary application directory in the controller machine
+    file:
+      path: "/tmp/{{app_name}}"
+      state: absent
+    delegate_to: localhost
+
+  - name: Clean the temporary application directory in the target machine
+    file:
+      path: "{{directory_struct.tmpDir}}"
+      state: absent
+
+

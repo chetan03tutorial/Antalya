@@ -1,1 +1,2 @@
-
+[webserver]
+hostname_in_host_file ansible_ssh_host=hostinformation

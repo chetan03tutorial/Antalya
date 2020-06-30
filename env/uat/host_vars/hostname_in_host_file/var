@@ -1,0 +1,17 @@
+---
+  ansible_connection: ssh
+  ansible_user: "{{vault_ansible_user}}"
+  ansible_ssh_pass: "{{vault_ansible_pass}}"
+  db_host: host
+  db_port: port
+  db_service: service
+  db_schema:
+    ce:
+      username: "{{vault_db_myrace_user}}"
+      password: "{{vault_db_myrace_pass}}"
+    ceapp:
+      username: "{{vault_db_myraceapp_user}}"
+      password: "{{vault_db_myraceapp_pass}}"
+    cesupport:
+      username: "{{vault_db_myracesupport_user}}"
+      password: "{{vault_db_myracesupport_pass}}"
